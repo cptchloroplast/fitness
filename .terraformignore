@@ -1,0 +1,5 @@
+*
+!terraform/
+!src/
+!requirements.txt
+__pycache__
