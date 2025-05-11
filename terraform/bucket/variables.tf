@@ -1,13 +1,13 @@
 variable "project" {
-  type = string
+  type        = string
   description = "Google Cloud project"
 }
 variable "name" {
-  type = string
+  type        = string
   description = "Google Cloud Storage bucket name"
 }
 variable "objects" {
-    description = "Google Cloud Storage objects"
-    type = map(string)
-    default = null
+  description = "Google Cloud Storage objects"
+  type        = map(string)
+  default     = null
 }

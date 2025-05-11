@@ -7,9 +7,9 @@ data "google_organization" "default" {
 }
 
 resource "google_project" "default" {
-  name       = var.name
-  project_id = local.project_id
-  org_id     = data.google_organization.default.org_id
+  name            = var.name
+  project_id      = local.project_id
+  org_id          = data.google_organization.default.org_id
   deletion_policy = "DELETE"
   billing_account = var.billing_account
 }

@@ -10,5 +10,9 @@ terraform {
       source  = "google"
       version = "~> 6.31"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.52"
+    }
   }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "fitness",
+  "version": "0.1.0",
+  "description": "Wahoo to Garmin Sync",
+  "main": "src/cloudflare/index.ts",
+  "scripts": {
+    "build": "wrangler deploy src/cloudflare/index.ts --dry-run --outdir dist",
+    "start": "wrangler dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "okkema",
+    "fitness",
+    "wahoo",
+    "garmin"
+  ],
+  "author": "Ben Okkema <ben@okkema.org>",
+  "license": "MIT",
+  "dependencies": {
+    "@okkema/worker": "^3.10.0",
+    "postal-mime": "^2.4.3",
+    "wrangler": "^4.14.1"
+  }
+}

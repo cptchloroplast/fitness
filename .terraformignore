@@ -2,4 +2,5 @@
 !terraform/
 !src/
 !requirements.txt
+!dist/
 __pycache__
