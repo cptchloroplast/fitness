@@ -27,19 +27,25 @@ data "archive_file" "default" {
 }
 
 module "project" {
-  source          = "./project"
+  source  = "app.terraform.io/okkema/project/google"
+  version = "~> 0.1"
+
   name            = var.github_repository
   billing_account = var.google_billing_account
 }
 
 module "service_account" {
-  source     = "./service_account"
+  source  = "app.terraform.io/okkema/service_account/google"
+  version = "~> 0.1"
+
   account_id = var.github_repository
   project    = module.project.project_id
 }
 
 module "bucket" {
-  source  = "./bucket"
+  source  = "app.terraform.io/okkema/bucket/google"
+  version = "~> 0.1"
+
   project = module.project.project_id
   name    = module.project.project_id
   objects = {
@@ -48,17 +54,21 @@ module "bucket" {
 }
 
 module "secret" {
-  source      = "./secret"
+  source  = "app.terraform.io/okkema/secret/google"
+  version = "~> 0.1"
+
   project     = module.project.project_id
   secret_id   = "garmin-token"
   secret_data = var.GARMIN_TOKEN
 }
 
 module "function" {
-  source      = "./function"
+  source  = "app.terraform.io/okkema/function/google"
+  version = "~> 0.1"
+
   project     = module.project.project_id
   entry_point = "run"
-  description = "Upload .fit to Garmin"
+  description = "Upload .fit file to Garmin"
   environment_variables = {
     SENTRY_DSN = module.sentry.dsn
   }
@@ -71,25 +81,14 @@ module "function" {
   depends_on = [module.bucket, module.sentry]
 }
 
-data "cloudflare_zone" "default" {
-  zone_id = var.cloudflare_email_zone_id
-}
 
-resource "cloudflare_email_routing_rule" "default" {
-  zone_id = var.cloudflare_email_zone_id
+module "email_rule" {
+  source  = "app.terraform.io/okkema/email_rule/cloudflare"
+  version = "~> 0.1"
+
+  zone_id = var.cloudflare_zone_id
   name    = var.github_repository
-  enabled = true
-
-  matcher {
-    type  = "literal"
-    field = "to"
-    value = "${var.github_repository}@${data.cloudflare_zone.default.name}"
-  }
-
-  action {
-    type  = "worker"
-    value = [var.github_repository]
-  }
+  worker  = var.github_repository
 }
 
 module "worker" {
