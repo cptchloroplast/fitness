@@ -47,14 +47,23 @@ module "bucket" {
   }
 }
 
+module "secret" {
+  source      = "./secret"
+  project     = module.project.project_id
+  secret_id   = "garmin-token"
+  secret_data = var.GARMIN_TOKEN
+}
+
 module "function" {
   source      = "./function"
   project     = module.project.project_id
   entry_point = "run"
   description = "Upload .fit to Garmin"
   environment_variables = {
-    GARMIN_TOKEN = var.GARMIN_TOKEN
-    SENTRY_DSN   = module.sentry.dsn
+    SENTRY_DSN = module.sentry.dsn
+  }
+  secrets = {
+    GARMIN_TOKEN = "garmin-token"
   }
   bucket     = module.project.project_id
   object     = "${module.project.project_id}.zip"

@@ -11,6 +11,10 @@ data "google_storage_bucket_object" "default" {
   bucket = var.bucket
 }
 
+data "google_project" "default" {
+  project_id = var.project
+}
+
 resource "google_project_service" "default" {
   for_each = toset(local.services)
   project  = var.project
@@ -41,6 +45,17 @@ resource "google_cloudfunctions2_function" "default" {
     available_memory      = "256M"
     timeout_seconds       = 60
     environment_variables = var.environment_variables
+    dynamic "secret_environment_variables" {
+      for_each = nonsensitive(toset(keys(var.secrets)))
+      iterator = secret
+
+      content {
+        key        = secret.key
+        project_id = var.project
+        secret     = sensitive(var.secrets[secret.key])
+        version    = "latest"
+      }
+    }
   }
 }
 
@@ -52,4 +67,12 @@ resource "google_cloud_run_service_iam_member" "default" {
   project  = var.project
   role     = "roles/run.invoker"
   member   = each.value
+}
+
+resource "google_secret_manager_secret_iam_member" "default" {
+  for_each  = nonsensitive(toset(keys(var.secrets)))
+  project   = var.project
+  secret_id = sensitive(var.secrets[each.value])
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${data.google_project.default.number}-compute@developer.gserviceaccount.com"
 }

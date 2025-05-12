@@ -26,6 +26,12 @@ variable "environment_variables" {
   type        = map(string)
   default     = null
 }
+variable "secrets" {
+  description = "Google Cloud Run function secret environment variables"
+  type        = map(string)
+  default     = null
+  sensitive   = true
+}
 variable "bucket" {
   description = "Google Cloud Storage bucket name"
   type        = string
