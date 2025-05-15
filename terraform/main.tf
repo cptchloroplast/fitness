@@ -86,7 +86,7 @@ module "email_rule" {
   source  = "app.terraform.io/okkema/email_rule/cloudflare"
   version = "~> 0.1"
 
-  zone_id = var.cloudflare_zone_id
+  zone_id = var.cloudflare_email_zone_id
   name    = var.github_repository
   worker  = var.github_repository
 }
