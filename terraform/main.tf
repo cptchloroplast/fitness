@@ -67,7 +67,7 @@ module "function" {
   version = "~> 0.1"
 
   project     = module.project.project_id
-  entry_point = "run"
+  entry_point = "garmin_upload"
   description = "Upload .fit file to Garmin"
   environment_variables = {
     SENTRY_DSN = module.sentry.dsn
@@ -108,6 +108,9 @@ module "worker" {
     { name = "GOOGLE_FUNCTION_URL", value = module.function.function_uri },
     { name = "WAHOO_EMAIL", value = var.WAHOO_EMAIL },
   ]
+  buckets = [
+    { name = var.github_repository, binding = "BACKUP" }
+  ]
 }
 
 module "sentry" {
@@ -117,4 +120,12 @@ module "sentry" {
   github_repository   = var.github_repository
   github_organization = "cptchloroplast"
   platform            = "other"
+}
+
+module "backup" {
+  source  = "app.terraform.io/okkema/bucket/cloudflare"
+  version = "~> 1.0"
+
+  account_id = var.cloudflare_account_id
+  name       = var.github_repository
 }

@@ -17,7 +17,10 @@
   "author": "Ben Okkema <ben@okkema.org>",
   "license": "MIT",
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20250601.0",
     "@okkema/worker": "^3.10.0",
+    "@types/mime-types": "^3.0.0",
+    "mime-types": "^3.0.1",
     "postal-mime": "^2.4.3",
     "wrangler": "^4.14.1"
   }
