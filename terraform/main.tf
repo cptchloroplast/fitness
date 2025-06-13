@@ -2,6 +2,11 @@ locals {
   root_dir   = abspath("${path.module}/..")
   source_dir = abspath("${local.root_dir}/src/google/")
   output_dir = abspath("${local.root_dir}/tmp/${module.project.project_id}")
+  secrets = {
+    "garmin-token": var.GARMIN_TOKEN
+    "aws-access-key-id": var.AWS_ACCESS_KEY_ID
+    "aws-secret-access-key": var.AWS_SECRET_ACCESS_KEY
+  }
 }
 
 resource "local_file" "source" {
@@ -56,13 +61,14 @@ module "bucket" {
 module "secret" {
   source  = "app.terraform.io/okkema/secret/google"
   version = "~> 0.1"
+  for_each = local.secrets
 
   project     = module.project.project_id
-  secret_id   = "garmin-token"
-  secret_data = var.GARMIN_TOKEN
+  secret_id   = each.key
+  secret_data = each.value
 }
 
-module "function" {
+module "upload" {
   source  = "app.terraform.io/okkema/function/google"
   version = "~> 0.1"
 
@@ -81,6 +87,27 @@ module "function" {
   depends_on = [module.bucket, module.sentry]
 }
 
+module "download" {
+  source  = "app.terraform.io/okkema/function/google"
+  version = "~> 0.1"
+
+  project     = module.project.project_id
+  entry_point = "garmin_download"
+  description = "Download Garmin activities to bucket"
+  environment_variables = {
+    SENTRY_DSN = module.sentry.dsn
+    BUCKET_URL = var.BUCKET_URL
+  }
+  secrets = {
+    GARMIN_TOKEN = "garmin-token"
+    AWS_ACCESS_KEY_ID = "aws-access-key-id"
+    AWS_SECRET_ACCESS_KEY = "aws-secret-access-key"
+  }
+  bucket     = module.project.project_id
+  object     = "${module.project.project_id}.zip"
+  members    = ["serviceAccount:${module.service_account.email}"]
+  depends_on = [module.bucket, module.sentry]
+}
 
 module "email_rule" {
   source  = "app.terraform.io/okkema/email_rule/cloudflare"
@@ -100,12 +127,14 @@ module "worker" {
   name                = var.github_repository
   content             = file("${local.root_dir}/dist/index.js")
   compatibility_flags = ["nodejs_compat_v2"]
+  schedules = ["0 0 * * *"]
   secrets = [
     { name = "SENTRY_DSN", value = module.sentry.dsn },
     { name = "GOOGLE_CREDENTIALS", value = module.service_account.private_key },
   ]
   env_vars = [
-    { name = "GOOGLE_FUNCTION_URL", value = module.function.function_uri },
+    { name = "GOOGLE_FUNCTION_URL_UPLOAD", value = module.upload.function_uri },
+    { name = "GOOGLE_FUNCTION_URL_DOWNLOAD", value = module.download.function_uri },
     { name = "WAHOO_EMAIL", value = var.WAHOO_EMAIL },
   ]
   buckets = [

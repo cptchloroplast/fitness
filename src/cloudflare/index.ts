@@ -9,14 +9,15 @@ const REGEX = /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1[\S\s]*?download.fit[\S\s]*?
 type Environment = {
     SENTRY_DSN: string
     GOOGLE_CREDENTIALS: string
-    GOOGLE_FUNCTION_URL: string
+    GOOGLE_FUNCTION_URL_UPLOAD: string
+    GOOGLE_FUNCTION_URL_DOWNLOAD: string
     WAHOO_EMAIL: string
     BACKUP: R2Bucket
 }
 
 export default SentryWorker<Environment>({
     async email(message, env, ctx) {
-        // Validate sender and html body
+        console.log("Started processing email from Wahoo")
         const email = await PostalMime.parse(message.raw)
         if (email.from.address != env.WAHOO_EMAIL)
             throw new Error(`Unkown sender: ${email.from.address}`)
@@ -35,13 +36,29 @@ export default SentryWorker<Environment>({
         const body = new FormData()
         body.append("name", name)
         body.append("file", blob)
-        const client = GoogleFunction(env.GOOGLE_CREDENTIALS, env.GOOGLE_FUNCTION_URL)
-        await Promise.all([
-            client.fetch({
-                method: "POST",
-                body: body as any,
-            }),
-            env.BACKUP.put(name, blob as any),
-        ])
+        const upload = GoogleFunction(env.GOOGLE_CREDENTIALS, env.GOOGLE_FUNCTION_URL_UPLOAD)
+        const uploaded = await upload.fetch({
+            method: "POST", 
+            body: body as any,
+        })
+        if (uploaded.ok) {
+            const result = await uploaded.json<any>()
+            console.log("Uploaded workout to Garmin", result)
+        } else {
+            const result = await uploaded.text()
+            console.log("Failed to upload workout to Garmin", result)
+        }
+        const download = GoogleFunction(env.GOOGLE_CREDENTIALS, env.GOOGLE_FUNCTION_URL_DOWNLOAD)
+        const downloaded = await download.fetch({ method: "POST" })
+        const status = await downloaded.text()
+        console.log(status, downloaded.status)
+        console.log("Finished processing email from Wahoo")
+    },
+    async scheduled(controller, env, ctx) {
+        console.log("Started downloading workouts from Garmin")
+        const response = await GoogleFunction(env.GOOGLE_CREDENTIALS, env.GOOGLE_FUNCTION_URL_DOWNLOAD).fetch({ method: "POST" })
+        const status = await response.text()
+        console.log(status, response.status)
+        console.log("Finished downloading workouts from Garmin")
     }
 })
