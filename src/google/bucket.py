@@ -11,13 +11,17 @@ config = Config(client_context_params={
 })
 
 s3 = boto3.client(
-  service_name="s3",
+  service_name="s3", # type: ignore
   endpoint_url = os.getenv("BUCKET_URL"),
   config=config
 )
 
-def list(bucket: str):
-  return s3.list_objects(Bucket=bucket)
+def list(bucket: str, prefix=""):
+  return s3.list_objects(Bucket=bucket, Prefix=prefix)
 
 def upload(bucket: str, path: str, content: IO[bytes]):
   s3.upload_fileobj(content, bucket, path)
+
+def download(bucket: str, key: str):
+  data = s3.get_object(Bucket=bucket, Key=key)
+  return data["Body"].read()

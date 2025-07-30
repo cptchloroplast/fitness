@@ -10,6 +10,7 @@ from io import BytesIO
 from json import dumps
 import logging
 import function
+import fit
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def garmin_upload(request: Request):
     file = request.files.get("file")
     if (not file):
         return "Missing file", 400
-    result = client.upload(file) # type: ignore
+    result = client.upload(fit.process) # type: ignore
     return result  
 
 @functions_framework.http
