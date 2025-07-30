@@ -37,7 +37,9 @@ def garmin_upload(request: Request):
     file = request.files.get("file")
     if (not file):
         return "Missing file", 400
-    result = client.upload(fit.process) # type: ignore
+    modified = fit.process(file) # type: ignore
+    modified.name = file.name # type: ignore
+    result = client.upload(modified)
     return result  
 
 @functions_framework.http
