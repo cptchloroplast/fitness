@@ -1,7 +1,6 @@
 import functions_framework
-from flask import Request
+from flask import Request, Response
 import os
-from garth.http import client
 from sentry_sdk import init
 from sentry_sdk.integrations.gcp import GcpIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -10,7 +9,10 @@ from io import BytesIO
 from json import dumps
 import logging
 import function
+import gpxpy
+import maps
 import fit
+import garmin
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +28,6 @@ init(
     }
 )
 
-token = os.getenv("GARMIN_TOKEN")
-if not token:
-    raise Exception("Unable to get token")
-client.loads(token)
-
 @functions_framework.http
 @function.http(method="POST")
 def garmin_upload(request: Request):
@@ -39,7 +36,7 @@ def garmin_upload(request: Request):
         return "Missing file", 400
     modified = fit.process(file) # type: ignore
     modified.name = file.name # type: ignore
-    result = client.upload(modified)
+    result = garmin.upload_activity(modified)
     return result  
 
 @functions_framework.http
@@ -49,18 +46,18 @@ def garmin_download(request: Request):
     files = list(map(lambda x: x.get("Key"), response.get("Contents", []))) # type: ignore
     logger.info("Found %d files in bucket %s", len(files), bucket.BUCKET)
     existing = dict.fromkeys(files, True)
-    activities = client.connectapi("/activitylist-service/activities/search/activities")
+    activities = garmin.list_activity()
     ids = list(map(lambda x: x.get("activityId"), activities)) # type: ignore
     logger.info("Retrieved %d activities from Garmin", len(ids))
     processed = set()
     for id in ids:
         for (key, bytes) in {
-            f"activity/{id}.json": lambda: str.encode(dumps(client.connectapi(f"/activity-service/activity/{id}"))),
-            f"activity/{id}.fit": lambda: client.download(f"/download-service/files/activity/{id}"),
-            f"activity/{id}.gpx": lambda: client.download(f"/download-service/export/gpx/activity/{id}"),
-            f"activity/{id}.tcx": lambda: client.download(f"/download-service/export/tcx/activity/{id}"),
-            f"activity/{id}.kml": lambda: client.download(f"/download-service/export/kml/activity/{id}"),
-            f"activity/{id}.csv": lambda: client.download(f"/download-service/export/csv/activity/{id}"),
+            f"activity/{id}.json": lambda: str.encode(dumps(garmin.get_activity(id))),
+            f"activity/{id}.fit": lambda: garmin.download_activity(id),
+            f"activity/{id}.gpx": lambda: garmin.download_activity(id, "gpx"),
+            f"activity/{id}.tcx": lambda: garmin.download_activity(id, "tcx"),
+            f"activity/{id}.kml": lambda: garmin.download_activity(id, "kml"),
+            f"activity/{id}.csv": lambda: garmin.download_activity(id, "csv"),
         }.items():
             if not existing.get(key):
                 logger.info("Downloading file %s to bucket %s", key, bucket.BUCKET)
