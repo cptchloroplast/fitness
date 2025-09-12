@@ -35,15 +35,14 @@ def garmin_upload(request: Request):
     if (not file):
         return "Missing file", 400
     modified = fit.process(file) # type: ignore
-    modified.name = file.name # type: ignore
-    result = garmin.upload_activity(modified)
+    result = garmin.upload_activity(file)
     return result  
 
 @functions_framework.http
 @function.http(method="POST")
 def garmin_download(request: Request):
     response = bucket.list(bucket.BUCKET)
-    files = list(map(lambda x: x.get("Key"), response.get("Contents", []))) # type: ignore
+    files = list(map(lambda x: x.get("Key"), response))
     logger.info("Found %d files in bucket %s", len(files), bucket.BUCKET)
     existing = dict.fromkeys(files, True)
     activities = garmin.list_activity()

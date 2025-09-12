@@ -1,7 +1,8 @@
 import boto3
 from botocore.config import Config
+from types_boto3_s3.type_defs import ObjectTypeDef
 import os
-from typing import IO
+from typing import IO, List
 
 BUCKET = "fitness"
 
@@ -17,7 +18,15 @@ s3 = boto3.client(
 )
 
 def list(bucket: str, prefix=""):
-  return s3.list_objects(Bucket=bucket, Prefix=prefix)
+  objects: List[ObjectTypeDef] = []
+  result = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+  objects += result["Contents"] # type: ignore
+  token = result.get("NextContinuationToken")
+  while token:
+    result = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, ContinuationToken=token)
+    objects += result["Contents"] # type: ignore
+    token = result.get("NextContinuationToken")
+  return objects
 
 def upload(bucket: str, path: str, content: IO[bytes]):
   s3.upload_fileobj(content, bucket, path)
