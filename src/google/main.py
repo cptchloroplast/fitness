@@ -1,45 +1,21 @@
-import functions_framework
+import functions_framework, gpxpy, json, logging
 from flask import Request, Response
-import os
-from sentry_sdk import init
-from sentry_sdk.integrations.gcp import GcpIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
-import bucket
+import bucket, functions, garmin, maps
 from io import BytesIO
-from json import dumps
-import logging
-import function
-import gpxpy
-import maps
-import fit
-import garmin
 
 logger = logging.getLogger(__name__)
 
-init(
-    dsn=os.getenv("SENTRY_DSN"),
-    send_default_pii=True,
-    integrations=[
-        GcpIntegration(),
-        LoggingIntegration(),
-    ],
-    _experiments={
-        "enable_logs": True
-    }
-)
-
 @functions_framework.http
-@function.http(method="POST")
+@functions.http(method="POST")
 def garmin_upload(request: Request):
     file = request.files.get("file")
     if (not file):
         return "Missing file", 400
-    modified = fit.process(file) # type: ignore
     result = garmin.upload_activity(file)
     return result  
 
 @functions_framework.http
-@function.http(method="POST")
+@functions.http(method="POST")
 def garmin_download(request: Request):
     response = bucket.list(bucket.BUCKET)
     files = list(map(lambda x: x.get("Key"), response))
@@ -51,7 +27,7 @@ def garmin_download(request: Request):
     processed = set()
     for id in ids:
         for (key, bytes) in {
-            f"activity/{id}.json": lambda: str.encode(dumps(garmin.get_activity(id))),
+            f"activity/{id}.json": lambda: str.encode(json.dumps(garmin.get_activity(id))),
             f"activity/{id}.fit": lambda: garmin.download_activity(id),
             f"activity/{id}.gpx": lambda: garmin.download_activity(id, "gpx"),
             f"activity/{id}.tcx": lambda: garmin.download_activity(id, "tcx"),
@@ -66,3 +42,22 @@ def garmin_download(request: Request):
         return f"Downloaded {len(processed)} files", 201
     else:
         return "No files downloaded", 200
+
+
+@functions_framework.http
+@functions.http()
+def generate_heatmap(req: Request):
+    center = (43.312222, -73.648333)
+    files = list(filter(lambda x: x["Key"].endswith(".gpx"), bucket.list(bucket.BUCKET, "activity")))
+    rows = []
+    for file in files:
+        key = file["Key"]
+        bytes = bucket.download(bucket.BUCKET, key)
+        gpx = gpxpy.parse(bytes)
+        for track in gpx.tracks:
+            for segment in track.segments:
+                for point in segment.points:
+                    lat, lon = point.latitude, point.longitude
+                    rows.append([key, lat, lon])
+    bytes = maps.heatmap(center, rows)
+    return Response(bytes, mimetype="image/png")
