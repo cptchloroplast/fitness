@@ -91,9 +91,9 @@ module "download" {
   source  = "app.terraform.io/okkema/function/google"
   version = "~> 0.2"
 
-  project     = module.project.project_id
-  entry_point = "garmin_download"
-  description = "Download Garmin activities to bucket"
+  project          = module.project.project_id
+  entry_point      = "garmin_download"
+  description      = "Download Garmin activities to bucket"
   available_cpu    = 1
   available_memory = "2Gi"
   timeout_seconds  = 300
@@ -138,7 +138,7 @@ module "heatmap" {
 
 module "email_rule" {
   source  = "app.terraform.io/okkema/email_rule/cloudflare"
-  version = "~> 0.1"
+  version = "~> 1.0"
 
   zone_id = var.cloudflare_email_zone_id
   name    = var.github_repository
@@ -147,27 +147,29 @@ module "email_rule" {
 
 module "worker" {
   source  = "app.terraform.io/okkema/worker/cloudflare"
-  version = "~> 0.6"
+  version = "~> 1.0"
 
   account_id          = var.cloudflare_account_id
   zone_id             = var.cloudflare_zone_id
   name                = var.github_repository
-  content             = file("${local.root_dir}/dist/index.js")
+  content_file           = "${local.root_dir}/dist/index.js"
   hostnames           = [var.github_repository]
   compatibility_flags = ["nodejs_compat_v2"]
-  schedules           = ["0 0 * * *"]
+  schedules           = [
+    { cron = "0 0 * * *"}
+  ]
   secrets = [
-    { name = "SENTRY_DSN", value = module.sentry.dsn },
-    { name = "GOOGLE_CREDENTIALS", value = module.service_account.private_key },
+    { name = "SENTRY_DSN", text = module.sentry.dsn },
+    { name = "GOOGLE_CREDENTIALS", text = module.service_account.private_key },
   ]
   env_vars = [
-    { name = "GOOGLE_FUNCTION_URL_UPLOAD", value = module.upload.function_uri },
-    { name = "GOOGLE_FUNCTION_URL_DOWNLOAD", value = module.download.function_uri },
-    { name = "GOOGLE_FUNCTION_URL_HEATMAP", value = module.heatmap.function_uri },
-    { name = "WAHOO_EMAIL", value = var.WAHOO_EMAIL },
+    { name = "GOOGLE_FUNCTION_URL_UPLOAD", text = module.upload.function_uri },
+    { name = "GOOGLE_FUNCTION_URL_DOWNLOAD", text = module.download.function_uri },
+    { name = "GOOGLE_FUNCTION_URL_HEATMAP", text = module.heatmap.function_uri },
+    { name = "WAHOO_EMAIL", text = var.WAHOO_EMAIL },
   ]
   buckets = [
-    { name = var.github_repository, binding = "BACKUP" }
+    { bucket_name = var.github_repository, name = "BACKUP" }
   ]
 }
 
@@ -182,7 +184,7 @@ module "sentry" {
 
 module "backup" {
   source  = "app.terraform.io/okkema/bucket/cloudflare"
-  version = "~> 1.0"
+  version = "~> 2.0"
 
   account_id = var.cloudflare_account_id
   name       = var.github_repository
