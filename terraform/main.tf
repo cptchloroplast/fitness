@@ -1,34 +1,11 @@
 locals {
-  root_dir   = abspath("${path.module}/..")
-  source_dir = abspath("${local.root_dir}/src/google/")
-  output_dir = abspath("${local.root_dir}/tmp/${module.project.project_id}")
+  root_dir = "${path.module}/.."
+  zip_file = "${local.root_dir}/dist/${module.project.project_id}.zip"
   secrets = {
     "garmin-token" : var.GARMIN_TOKEN
     "aws-access-key-id" : var.AWS_ACCESS_KEY_ID
     "aws-secret-access-key" : var.AWS_SECRET_ACCESS_KEY
   }
-}
-
-resource "local_file" "source" {
-  for_each = fileset("${local.source_dir}", "**.py")
-  filename = "${local.output_dir}/${each.value}"
-  source   = "${local.source_dir}/${each.value}"
-}
-
-resource "local_file" "requirements" {
-  filename = "${local.output_dir}/requirements.txt"
-  source   = "${local.root_dir}/requirements.txt"
-}
-
-data "archive_file" "default" {
-  type        = "zip"
-  output_path = "${local.output_dir}.zip"
-  source_dir  = local.output_dir
-
-  depends_on = [
-    local_file.source,
-    local_file.requirements
-  ]
 }
 
 module "project" {
@@ -54,7 +31,7 @@ module "bucket" {
   project = module.project.project_id
   name    = module.project.project_id
   objects = {
-    "${module.project.project_id}.zip" = "${local.output_dir}.zip"
+    "${module.project.project_id}.zip" = "${local.zip_file}"
   }
 }
 
@@ -152,11 +129,11 @@ module "worker" {
   account_id          = var.cloudflare_account_id
   zone_id             = var.cloudflare_zone_id
   name                = var.github_repository
-  content_file           = "${local.root_dir}/dist/index.js"
+  content_file        = "${local.root_dir}/dist/index.js"
   hostnames           = [var.github_repository]
   compatibility_flags = ["nodejs_compat_v2"]
-  schedules           = [
-    { cron = "0 0 * * *"}
+  schedules = [
+    { cron = "0 0 * * *" }
   ]
   secrets = [
     { name = "SENTRY_DSN", text = module.sentry.dsn },
