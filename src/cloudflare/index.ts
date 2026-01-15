@@ -38,7 +38,7 @@ app.get("/", async c => {
     const buffer = await response.arrayBuffer()
     return new Response(buffer, { headers: { "Content-Type": "image/png" } })
 })
-app.get("/wahoo", async c => {
+app.post("/wahoo", async c => {
     const json = await c.req.json()
     if (json?.webhook_token === c.env.WAHOO_WEBHOOK_TOKEN) 
         throw new Error("Invalid Wahoo webhook token")
