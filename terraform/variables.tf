@@ -6,7 +6,15 @@ variable "cloudflare_email_zone_id" {}
 variable "GARMIN_TOKEN" {
   sensitive = true
 }
-variable "WAHOO_EMAIL" {}
+variable "WAHOO_CLIENT_ID" {
+  sensitive = true
+}
+variable "WAHOO_CLIENT_SECRET" {
+  sensitive = true
+}
+variable "WAHOO_WEBHOOK_TOKEN" {
+  sensitive = true
+}
 variable "AWS_ACCESS_KEY_ID" {
   sensitive = true
 }
