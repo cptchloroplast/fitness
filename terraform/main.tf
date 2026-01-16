@@ -138,14 +138,14 @@ module "worker" {
   secrets = [
     { name = "SENTRY_DSN", text = module.sentry.dsn },
     { name = "GOOGLE_CREDENTIALS", text = module.service_account.private_key },
+    { name = "WAHOO_CLIENT_ID", text = var.WAHOO_CLIENT_ID },
+    { name = "WAHOO_CLIENT_SECRET", text = var.WAHOO_CLIENT_SECRET },
+    { name = "WAHOO_WEBHOOK_TOKEN", text = var.WAHOO_WEBHOOK_TOKEN },
   ]
   env_vars = [
     { name = "GOOGLE_FUNCTION_URL_UPLOAD", text = module.upload.function_uri },
     { name = "GOOGLE_FUNCTION_URL_DOWNLOAD", text = module.download.function_uri },
     { name = "GOOGLE_FUNCTION_URL_HEATMAP", text = module.heatmap.function_uri },
-    { name = "WAHOO_CLIENT_ID", text = var.WAHOO_CLIENT_ID },
-    { name = "WAHOO_CLIENT_SECRET", text = var.WAHOO_CLIENT_SECRET },
-    { name = "WAHOO_WEBHOOK_TOKEN", text = var.WAHOO_WEBHOOK_TOKEN },
   ]
   buckets = [
     { bucket_name = var.github_repository, name = "BACKUP" }

@@ -40,8 +40,9 @@ app.get("/", async c => {
 })
 app.post("/wahoo", async c => {
     const json = await c.req.json()
-    if (json?.webhook_token === c.env.WAHOO_WEBHOOK_TOKEN) 
+    if (json?.webhook_token !== c.env.WAHOO_WEBHOOK_TOKEN) {
         throw new Error("Invalid Wahoo webhook token")
+    }
     console.log(`Started processing webhook from Wahoo: ${json?.workout_summary?.id}`)
     const link = json?.workout_summary?.file?.url
     if (!link)
