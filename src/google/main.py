@@ -22,7 +22,7 @@ def garmin_download(request: Request):
     logger.info("Found %d files in bucket %s", len(files), bucket.BUCKET)
     existing = dict.fromkeys(files, True)
     activities = garmin.list_activity()
-    ids = list(map(lambda x: x.get("activityId"), activities)) # type: ignore
+    ids = list(map(lambda x: x["activityId"], activities)) # type: ignore
     logger.info("Retrieved %d activities from Garmin", len(ids))
     processed = set()
     for id in ids:
@@ -60,4 +60,5 @@ def generate_heatmap(req: Request):
                     lat, lon = point.latitude, point.longitude
                     rows.append([key, lat, lon])
     bytes = maps.heatmap(center, rows)
+    bucket.upload(bucket.BUCKET, "heatmap.png", BytesIO(bytes))
     return Response(bytes, mimetype="image/png")

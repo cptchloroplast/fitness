@@ -27,7 +27,7 @@ async function download_activity(env: Environment) {
     if (downloaded.status == 201) {
         console.log("Generating new heatmap")
         const generated = await GoogleFunction(env.GOOGLE_CREDENTIALS, env.GOOGLE_FUNCTION_URL_HEATMAP).fetch({})
-        await env.BACKUP.put(KEY, generated.body)
+        if (!generated.ok) throw new Error(`Error while generating heatmap: ${generated.status}`)
     }
 }
 
